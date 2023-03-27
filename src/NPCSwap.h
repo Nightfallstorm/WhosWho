@@ -21,15 +21,13 @@ public:
 		RE::TESObjectARMO* farSkin;
 		RE::TESNPC::FaceData* faceData;
 		RE::TESRace::FaceRelatedData* faceRelatedData;
-		RE::TESNPC::HeadRelatedData* headData;
+		RE::TESNPC::HeadRelatedData* headRelatedData;
 		RE::BGSHeadPart** headParts;
 		std::uint8_t numHeadParts;
 	};
 	NPCData* oldNPCData;
 	NPCData* newNPCData;
 	RE::FormID currentNPCAppearanceID = 0;
-
-	NPCSwapper(RE::TESNPC* a_baseNPC);
 
 	// Setup new NPC for the current NPC to swap to
 	void SetupNewNPCSwap(NPCData* a_newNPCData);
@@ -40,7 +38,22 @@ public:
 	// Revert NPC appearance
 	void Revert();
 
+	static void ApplySwapToReference(RE::Character* a_refr, NPCSwapper* a_swapper, bool fullReset, bool revertToOriginalAppearance);
+
+	// Gets the NPCSwapper data for the NPC, or creates one if it doesn't exist
+	static NPCSwapper* GetOrPutNPCSwapper(RE::FormID a_formID);
+
+	static NPCSwapper* GetOrPutNPCSwapper(RE::TESNPC* a_npc);
+
+	static NPCSwapper* GetOrPutNPCSwapper(RE::Character* a_npc);
+
+	static NPCSwapper* GetNPCSwapper(RE::FormID a_formID);
+
+	static void RemoveNPCSwapper(RE::FormID a_formID);
+
 private:
+	static inline std::map<RE::FormID, NPCSwapper*> NPCSwapMap;
+	NPCSwapper(RE::TESNPC* a_baseNPC);
 	void CopyNPCData(NPCData* a_data, RE::TESNPC* a_baseNPC);
 	void CopySkins(NPCData* a_data, RE::TESNPC* a_baseNPC);
 	void CopyStats(NPCData* a_data, RE::TESNPC* a_baseNPC);
@@ -64,7 +77,9 @@ namespace constants
 
 namespace database
 {
-	inline std::map<RE::FormID, NPCSwapper*> NPCSwapMap;
 	inline RE::BSTArray<RE::TESRace*> allRaces;
 	inline std::vector<RE::TESNPC*> allNPCs;
 }
+
+// TODO: This is here to ensure size error in CLIB-NG fails this build unless corrected
+static_assert(sizeof(RE::TESNPC::Layer) == 0xC); 
