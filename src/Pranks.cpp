@@ -1,7 +1,9 @@
 #include "Pranks.h"
 #include "NPCSwap.h"
 
-static inline Prank* currentPrank;
+static inline Prank* beastPrank;
+static inline Prank* nazeemPrank;
+
 // Filter for only NPCs this swapping can work on
 bool IsNPCValid(RE::TESNPC* a_npc)
 {
@@ -11,15 +13,23 @@ bool IsNPCValid(RE::TESNPC* a_npc)
 	       !a_npc->IsDynamicForm() &&
 
 	       a_npc->race &&
-	       a_npc->race->HasKeywordID(constants::ActorTypeNPC);
+	       a_npc->race->HasKeywordID(constants::ActorTypeNPC) &&
+		   !a_npc->race->IsChildRace();
 }
 
-void Prank::SetCurrentPrank(Prank* a_prank) {
-	currentPrank = a_prank;
+Prank* Prank::GetBeastPrank()
+{
+	if (!beastPrank) {
+		beastPrank = new AllBeast();
+	}
+	return beastPrank;
 }
 
-Prank* Prank::GetCurrentPrank() {
-	return currentPrank;
+Prank* Prank::GetNazeemPrank() {
+	if (!nazeemPrank) {
+		nazeemPrank = new NazeemWhenTalking();
+	}
+	return nazeemPrank;
 }
 
 void AllBeast::StartPrank()
@@ -75,6 +85,10 @@ void AllBeast::StopPrank() {
 }
 
 void AllBeast::ProcessTemplateNPC(RE::TESNPC* a_npc) {
+	if (!a_npc || !a_npc->race || a_npc->race->IsChildRace()) {
+		return;
+	}
+
 	RE::FormID BeastID = 0;
 	if (a_npc->IsFemale()) {
 		BeastID = uniqueFemaleBeastNPCs[rand() % uniqueFemaleBeastNPCs.size()];

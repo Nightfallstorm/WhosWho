@@ -12,51 +12,11 @@ public:
 
 	virtual void ProcessFormDelete(RE::FormID a_formID) = 0;
 
-	static void SetCurrentPrank(Prank* a_prank);
+	static Prank* GetBeastPrank();
 
-	static Prank* GetCurrentPrank();
+	static Prank* GetNazeemPrank();
 };
 
-
-
-class MaiqOnSight : public Prank, public RE::BSTEventSink<SKSE::CrosshairRefEvent>
-{
-	// TODO: VR may not work, TEST without po3 VR crosshair fix tweak
-	void StartPrank() override
-	{
-		SKSE::GetCrosshairRefEventSource()->AddEventSink(this);
-
-		auto Maiq = RE::TESForm::LookupByID(constants::Maiq)->As<RE::TESNPC>();
-		NPCSwapper::GetOrPutNPCSwapper(Maiq);
-	}
-
-	void StopPrank() override
-	{
-		SKSE::GetCrosshairRefEventSource()->RemoveEventSink(this);
-	}
-
-	RE::BSEventNotifyControl ProcessEvent(const SKSE::CrosshairRefEvent* a_event, RE::BSTEventSource<SKSE::CrosshairRefEvent>* a_eventSource) override
-	{
-		if (!a_event || !a_event->crosshairRef || !a_event->crosshairRef.get() || !a_event->crosshairRef.get()->As<RE::Character>()) {
-			return RE::BSEventNotifyControl::kContinue;
-		}
-
-		auto actor = a_event->crosshairRef.get()->As<RE::Character>();
-
-		auto npcSwapper = NPCSwapper::GetOrPutNPCSwapper(actor);
-
-		if (npcSwapper->currentNPCAppearanceID != constants::Maiq) {
-			// Apply new NPC aesthetics
-			npcSwapper->SetupNewNPCSwap(NPCSwapper::GetNPCSwapper(constants::Maiq)->oldNPCData);
-			NPCSwapper::ApplySwapToReference(actor, npcSwapper, true, false);
-
-			// Revert after Maiqing. The reference will load with Maiq aesthetics, but next load of their 3D will be normal
-			// to fool the player ;)
-			npcSwapper->Revert();
-		}
-		return RE::BSEventNotifyControl::kContinue;
-	}
-};
 
 class AllBeast : public Prank
 {
@@ -73,10 +33,6 @@ class AllBeast : public Prank
 	void ProcessTemplateNPC(RE::TESNPC* a_npc) override;
 
 	void ProcessFormDelete(RE::FormID a_formID) override;
-};
-
-class RandomInterval : public Prank
-{
 };
 
 class NazeemWhenTalking : public Prank, RE::BSTEventSink<RE::TESActivateEvent>
@@ -109,7 +65,7 @@ class NazeemWhenTalking : public Prank, RE::BSTEventSink<RE::TESActivateEvent>
 
 			// Revert after Nazeeming. The reference will reset with Nazeem aesthetics, but next load of their 3D will be normal
 			// to fool the player ;)
-			npcSwapper->Revert();
+			//npcSwapper->Revert();
 		}
 		return RE::BSEventNotifyControl::kContinue;
 	}

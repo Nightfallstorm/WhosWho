@@ -3,31 +3,13 @@
 #include "Pranks.h"
 #include "Settings.h"
 
-struct CEHelper
-{
-	std::uint64_t CESignature = 0x123456789ABCDEF;
-	RE::TESNPC* debugNPC = nullptr;
-	RE::TESRace* desiredRace = nullptr;
-	RE::TESObjectARMO* armorRaceCheck = nullptr;
-} cehelper;
-
-// TODO: REMOVE THIS WHEN DEBUGGING NO LONGER NEEDED
-void Debug()
-{
-	cehelper.debugNPC = RE::TESForm::LookupByID(0x13BBF)->As<RE::TESNPC>();      // Nazeem
-	cehelper.desiredRace = RE::TESForm::LookupByID(0x13746)->As<RE::TESRace>();  // Nord
-	cehelper.armorRaceCheck = RE::TESForm::LookupByID(0x13746)->As<RE::TESRace>()->skin;
-}
-
 void MessageInterface(SKSE::MessagingInterface::Message* msg)
 {
 	switch (msg->type) {
 	case SKSE::MessagingInterface::kDataLoaded:
-		Debug();
-		if (Prank::GetCurrentPrank()) {
-			logger::info("Starting prank!");
-			Prank::GetCurrentPrank()->StartPrank();
-		}
+		logger::info("Starting pranks!");
+		Prank::GetBeastPrank()->StartPrank();
+		Prank::GetNazeemPrank()->StartPrank();
 		logger::info("Installing hooks!");
 		hook::InstallHooks();
 		break;

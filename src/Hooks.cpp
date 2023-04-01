@@ -25,14 +25,23 @@ struct GetTESModelHook
 	// Install our hook at the specified address
 	static inline void Install()
 	{
-		// TODO: AE
-		REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(19322, 0), REL::VariantOffset(0x5F, 0x0, 0x5F) };
+		REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(19322, 19749), REL::VariantOffset(0x5F, 0x6B, 0x5F) };
 		// Fill the gender and skeleton calls with NOP, as we will handle both gender and skeleton access ourselves
-		REL::safe_fill(target.address(), REL::NOP, 0xF);
+		if (REL::Module::IsAE()) {
+			REL::safe_fill(target.address(), REL::NOP, 0x32);
+		} else {
+			REL::safe_fill(target.address(), REL::NOP, 0xF);
+		}
 
 		auto& trampoline = SKSE::GetTrampoline();
 		SKSE::AllocTrampoline(14);
 		trampoline.write_call<5>(target.address(), reinterpret_cast<uintptr_t>(GetTESModel));
+
+		if (REL::Module::IsAE()) {
+			// AE inlines and uses rbx for skeleton model
+			std::byte fixReturnValue[] = { (std::byte)0x48, (std::byte)0x89, (std::byte)0xC3 }; // mov rbx, rax
+			REL::safe_write(target.address() + 0x5, fixReturnValue, 3);
+		}
 
 		logger::info("GetTESModelHook hooked at address {:x}", target.address());
 		logger::info("GetTESModelHook hooked at offset {:x}", target.offset());
@@ -57,11 +66,16 @@ struct GetFaceRelatedDataHook
 	// Install our hook at the specified address
 	static inline void Install()
 	{
-		// TODO: AE
-		REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(24226, 0), REL::VariantOffset(0x8B, 0x0, 0x8B) };
+		REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(24226, 24730), REL::VariantOffset(0x8B, 0x5A, 0x8B) };
 		REL::safe_fill(target.address(), REL::NOP, 0x10);                                     // Fill with NOP
-		std::byte newInstructions[] = { (std::byte)0x48, (std::byte)0x89, (std::byte)0xC3 };  // mov rbx, rax
-		REL::safe_write(target.address() + 0x5, newInstructions, 3);
+		if (REL::Module::IsAE()) {
+			std::byte newInstructions[] = { (std::byte)0x49, (std::byte)0x89, (std::byte)0xC6 };  // mov r14, rax
+			REL::safe_write(target.address() + 0x5, newInstructions, 3);
+		} else {
+			std::byte newInstructions[] = { (std::byte)0x48, (std::byte)0x89, (std::byte)0xC3 };  // mov rbx, rax
+			REL::safe_write(target.address() + 0x5, newInstructions, 3);
+		}
+		
 		auto& trampoline = SKSE::GetTrampoline();
 		SKSE::AllocTrampoline(14);
 		trampoline.write_call<5>(target.address(), reinterpret_cast<uintptr_t>(GetFaceData));
@@ -96,8 +110,8 @@ struct GetFaceRelatedDataHook2
 	// Install our hook at the specified address
 	static inline void Install()
 	{
-		// TODO: AE
-		REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(26258, 0), REL::VariantOffset(0x95, 0x0, 0x95) };
+		// TODO: The function is used elsewhere, may need to hook that too?
+		REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(26258, 26837), REL::VariantOffset(0x95, 0x7D, 0x95) };
 
 		stl::write_thunk_call<GetFaceRelatedDataHook2>(target.address());
 
@@ -120,7 +134,7 @@ struct LoadTESObjectARMOHook
 				race = NPCSwapper->newNPCData->race;
 			}
 		}
-		return func(a_unk, race, a_unk1, isFemale);  // TODO: Test female
+		return func(a_unk, race, a_unk1, isFemale);
 	}
 
 	static inline REL::Relocation<decltype(thunk)> func;
@@ -128,20 +142,20 @@ struct LoadTESObjectARMOHook
 	// Install our hook at the specified address
 	static inline void Install()
 	{
-		// TODO: AE
-		REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(24232, 0), REL::VariantOffset(0x302, 0x0, 0x302) };
+		// TODO: One use of TESObjectARMO::AddToBiped not hooked, may need hook?
+		REL::Relocation<std::uintptr_t> target{ RELOCATION_ID(24232, 24736), REL::VariantOffset(0x302, 0x302, 0x302) };
 		std::byte bytes[] = { (std::byte)0x48, (std::byte)0x89, (std::byte)0xCA };  // mov rdx, rcx
 		REL::safe_fill(target.address() - 0xA, REL::NOP, 0x7);                      // NOP previous instruction (mov rdx, [rcx+0x158])
 		REL::safe_write(target.address() - 0xA, bytes, 3);
 		stl::write_thunk_call<LoadTESObjectARMOHook>(target.address());
 
-		REL::Relocation<std::uintptr_t> target2{ RELOCATION_ID(24233, 0), REL::VariantOffset(0x78, 0x0, 0x78) };
+		REL::Relocation<std::uintptr_t> target2{ RELOCATION_ID(24233, 24737), REL::VariantOffset(0x78, 0x78, 0x78) };
 		std::byte bytes2[] = { (std::byte)0x48, (std::byte)0x89, (std::byte)0xCA };  // mov rdx, rcx
 		REL::safe_fill(target2.address() - 0xE, REL::NOP, 0x7);                      // NOP previous instruction (mov rdx, [rcx+0x158])
 		REL::safe_write(target2.address() - 0xE, bytes2, 3);
 		stl::write_thunk_call<LoadTESObjectARMOHook>(target2.address());
 
-		REL::Relocation<std::uintptr_t> target3{ RELOCATION_ID(24237, 0), REL::VariantOffset(0xEE, 0x0, 0xEE) };
+		REL::Relocation<std::uintptr_t> target3{ RELOCATION_ID(24237, 24741), REL::VariantOffset(0xEE, 0xEE, 0xEE) };
 		std::byte bytes3[] = { (std::byte)0x48, (std::byte)0x89, (std::byte)0xF2 };  // mov rdx, rsi
 		REL::safe_fill(target3.address() - 0xB, REL::NOP, 0x7);                      // NOP previous instruction (mov rdx, [rsi+0x158])
 		REL::safe_write(target3.address() - 0xB, bytes3, 3);
@@ -173,7 +187,7 @@ struct LoadTESObjectARMOHook2
 			}
 		}
 
-		return func(a_unk, race, a_unk1, isFemale);  // TODO: Test female
+		return func(a_unk, race, a_unk1, isFemale);
 	}
 
 	static inline REL::Relocation<decltype(thunk)> func;
@@ -181,14 +195,21 @@ struct LoadTESObjectARMOHook2
 	// Install our hook at the specified address
 	static inline void Install()
 	{
-		// TODO: AE
-		REL::Relocation<std::uintptr_t> target4{ RELOCATION_ID(24221, 0), REL::VariantOffset(0x189, 0x0, 0x189) };
-		std::byte bytes4[] = { (std::byte)0x48, (std::byte)0x89, (std::byte)0xDA };  // mov rdx, rbx
-		REL::safe_fill(target4.address() - 0x7, REL::NOP, 0x7);                      // NOP previous instruction (mov rdx, [rbx+0x158])
-		REL::safe_write(target4.address() - 0x7, bytes4, 3);
+		REL::Relocation<std::uintptr_t> target4{ RELOCATION_ID(24221, 24725), REL::VariantOffset(0x189, 0x191, 0x189) };
+		if (REL::Module::IsAE()) {
+			std::byte bytes4[] = { (std::byte)0x48, (std::byte)0x89, (std::byte)0xF2 };  // mov rdx, rsi
+			REL::safe_fill(target4.address() - 0xA, REL::NOP, 0x7);                      // NOP previous instruction (mov rdx, [rsi+0x158])
+			REL::safe_write(target4.address() - 0xA, bytes4, 3);
+		} else {
+			std::byte bytes4[] = { (std::byte)0x48, (std::byte)0x89, (std::byte)0xDA };  // mov rdx, rbx
+			REL::safe_fill(target4.address() - 0x7, REL::NOP, 0x7);                      // NOP previous instruction (mov rdx, [rbx+0x158])
+			REL::safe_write(target4.address() - 0x7, bytes4, 3);
+		}		
 		stl::write_thunk_call<LoadTESObjectARMOHook2>(target4.address());
 
-		REL::Relocation<std::uintptr_t> target5{ RELOCATION_ID(24237, 0), REL::VariantOffset(0x52, 0x0, 0x52) };
+
+
+		REL::Relocation<std::uintptr_t> target5{ RELOCATION_ID(24237, 24741), REL::VariantOffset(0x52, 0x52, 0x52) };
 		std::byte bytes5[] = { (std::byte)0x48, (std::byte)0x89, (std::byte)0xCA };  // mov rdx, rcx
 		REL::safe_fill(target5.address() - 0xE, REL::NOP, 0x7);                      // NOP previous instruction (mov rdx, [rcx+0x158])
 		REL::safe_write(target5.address() - 0xE, bytes5, 3);
@@ -202,6 +223,8 @@ struct LoadTESObjectARMOHook2
 	}
 };
 
+// TODO: Grab animation/behavior data from race
+
 struct CopyFromTemplate
 {
 	static void thunk(RE::TESActorBaseData* a_self, RE::TESActorBase* a_template)
@@ -210,7 +233,7 @@ struct CopyFromTemplate
 		auto NPC = skyrim_cast<RE::TESNPC*, RE::TESActorBaseData>(a_self);
 		auto templateNPC = skyrim_cast<RE::TESNPC*, RE::TESActorBase>(a_template);
 
-		if (!NPC || !templateNPC || !Prank::GetCurrentPrank() || !templateNPC->GetRace()->HasKeywordID(constants::ActorTypeNPC)) {
+		if (!NPC || !templateNPC || !templateNPC->GetRace()->HasKeywordID(constants::ActorTypeNPC)) {
 			return;
 		}
 
@@ -229,13 +252,15 @@ struct CopyFromTemplate
 
 	static void ProcessBaseNPC(RE::TESNPC* NPC, RE::TESNPC* templateNPC) {
 		logger::info("Handling base NPC: {} {:x}", NPC->GetFullName(), NPC->formID);
-		Prank::GetCurrentPrank()->ProcessTemplateNPC(NPC);
+		Prank::GetBeastPrank()->ProcessTemplateNPC(NPC);
+		Prank::GetNazeemPrank()->ProcessTemplateNPC(NPC);
 	}
 
 	static void ProcessTemplateNPC(RE::TESNPC* NPC, RE::TESNPC* templateNPC)
 	{
 		logger::info("Handling template NPC: {} {:x}", templateNPC->GetFullName(), templateNPC->formID);
-		Prank::GetCurrentPrank()->ProcessTemplateNPC(templateNPC);
+		Prank::GetBeastPrank()->ProcessTemplateNPC(templateNPC);
+		Prank::GetNazeemPrank()->ProcessTemplateNPC(templateNPC);
 	}
 
 	static inline REL::Relocation<decltype(thunk)> func;
@@ -304,16 +329,67 @@ struct CopyNPC
 	}
 };
 
+struct DtorNPC
+{
+	// Remove NPCSwapper data when NPC being cleared
+	static void thunk(RE::TESNPC* a_self, std::byte unk)
+	{
+		NPCSwapper::RemoveNPCSwapper(a_self->formID);
+		func(a_self, unk);
+	}
+
+	static inline REL::Relocation<decltype(thunk)> func;
+
+	static inline std::uint32_t idx = 0;
+
+	// Install our hook at the specified address
+	static inline void Install()
+	{
+		stl::write_vfunc<RE::TESNPC, 0, DtorNPC>();
+
+		logger::info("DtorNPC hook set");
+	}
+};
+
+struct SaveNPC
+{
+	// Revert any swaps before saving to prevent presistence
+	static void thunk(RE::TESNPC* a_self, std::uint64_t unkSaveStruct)
+	{
+		auto swapper = NPCSwapper::GetNPCSwapper(a_self->formID);
+		bool appliedSwap = false;
+		if (swapper && swapper->currentNPCAppearanceID != a_self->formID) {
+			appliedSwap = true;
+			logger::info("Reverting NPC for save: {}", a_self->formID);
+			swapper->Revert();
+			
+		}
+		func(a_self, unkSaveStruct);
+
+		if (swapper && appliedSwap) {
+			swapper->Apply();
+		}
+	}
+
+	static inline REL::Relocation<decltype(thunk)> func;
+
+	static inline std::uint32_t idx = 0xE;
+
+	// Install our hook at the specified address
+	static inline void Install()
+	{
+		stl::write_vfunc<RE::TESNPC, 0, SaveNPC>();
+
+		logger::info("SaveNPC hook set");
+	}
+};
+
 class HandleFormDelete : public RE::BSTEventSink<RE::TESFormDeleteEvent>
 {
 	RE::BSEventNotifyControl ProcessEvent(const RE::TESFormDeleteEvent* a_event, RE::BSTEventSource<RE::TESFormDeleteEvent>* a_eventSource) override
 	{
 		NPCSwapper::RemoveNPCSwapper(a_event->formID);
-
-		if (Prank::GetCurrentPrank()) {
-			Prank::GetCurrentPrank()->ProcessFormDelete(a_event->formID);
-		}
-
+		//Prank::GetCurrentPrank()->ProcessFormDelete(a_event->formID);
 		return RE::BSEventNotifyControl::kContinue;
 	}
 };
@@ -328,4 +404,6 @@ void hook::InstallHooks()
 	RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink(new HandleFormDelete());
 	CopyFromTemplate::Install();
 	CopyNPC::Install();
+	DtorNPC::Install();
+	SaveNPC::Install();
 }

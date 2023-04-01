@@ -173,7 +173,7 @@ void NPCSwapper::Revert()
 static void ObjectReference__Enable(RE::TESObjectREFR* a_self, bool a_abFadeIn, bool a_wait, RE::BSScript::Internal::VirtualMachine* a_vm, RE::VMStackID a_stackID)
 {
 	using func_t = decltype(&ObjectReference__Enable);
-	REL::Relocation<func_t> func{ RELOCATION_ID(56038, 0) };  // TODO: AE
+	REL::Relocation<func_t> func{ RELOCATION_ID(56038, 56158) };
 	return func(a_self, a_abFadeIn, a_wait, a_vm, a_stackID);
 }
 
@@ -216,11 +216,6 @@ void NPCSwapper::ApplyNPCData(NPCData* a_data, RE::TESNPC* a_baseNPC)
 {
 	assert(a_baseNPC);
 
-	if (a_baseNPC->numKeywords > 300) {
-		// TODO: This is just an arbritrary way to detect garbage NPC data that can't be swapped properly
-		RE::DebugMessageBox("Garbage NPC detected");
-		return;
-	}
 	if (a_data->isBeastRace && !a_baseNPC->HasKeywordID(constants::IsBeastRace)) {
 		a_baseNPC->AddKeyword(RE::TESForm::LookupByID(constants::IsBeastRace)->As<RE::BGSKeyword>());
 	} else {
@@ -285,7 +280,6 @@ void NPCSwapper::CopySkins(NPCData* a_data, RE::TESNPC* a_baseNPC)
 	a_data->farSkin = newFarSkin;
 }
 
-// TODO: Unbake this from save? Or just require save unbaker
 void NPCSwapper::CopyStats(NPCData* a_data, RE::TESNPC* a_baseNPC)
 {
 	a_data->weight = a_baseNPC->weight;
